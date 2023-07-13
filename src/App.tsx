@@ -8,7 +8,12 @@ import './App.css';
  */
 interface IState {
   data: ServerRespond[],
+  showGraph: boolean,
 }
+
+const dataTimeout = 1000; // sets number of repetitions before stoping data stream
+const delayTime = 100; // delay between getData requests, in ms
+
 
 /**
  * The parent element of the react app.
@@ -22,6 +27,7 @@ class App extends Component<{}, IState> {
       // data saves the server responds.
       // We use this state to parse data down to the child element (Graph) as element property
       data: [],
+      showGraph: false,
     };
   }
 
@@ -29,18 +35,27 @@ class App extends Component<{}, IState> {
    * Render Graph react component with state.data parse as property data
    */
   renderGraph() {
-    return (<Graph data={this.state.data}/>)
+    if (this.state.showGraph)
+      return (<Graph data={this.state.data}/>)
   }
 
   /**
    * Get new data from server and update the state with the new data
    */
   getDataFromServer() {
-    DataStreamer.getData((serverResponds: ServerRespond[]) => {
-      // Update the state by creating a new array of data that consists of
-      // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
-    });
+    let i = 0;
+    // updates data on delayTime ms intervals for a total of dataTimeout times
+    const interval = setInterval(() => {
+      DataStreamer.getData((serverResponds: ServerRespond[]) => {
+        // Update the state by creating a new array of data that consists of
+        // Previous data in the state and the new data from server
+        this.setState({data: serverResponds, showGraph: true,});
+      });
+      i++;
+      if (i > dataTimeout) {
+        clearInterval(interval)
+      }
+    }, delayTime);
   }
 
   /**
